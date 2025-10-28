@@ -11,5 +11,11 @@ Upload a file. That's literally it. Make sure the file has proper metadata (albu
 # Disclaimer
 This app is obviously unofficial and not affiliated with Spinnin' Records.
 
+# Stuff used
+- [jsmediatags](https://github.com/aadsm/jsmediatags) for reading metadata and album art
+
 # License
 This project is licensed under the MIT License. See the LICENSE file for details.
+
+# See also
+Check out my web-based advanced music player, Voxity: https://exerinity.com/i/vox
