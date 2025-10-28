@@ -99,3 +99,16 @@ function calculate(buffer) {
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     return window.btoa(binary);
 }
+
+audio.addEventListener('ended', () => {
+    const a = confirm('Playback ended\n\nPlay again, or choose a new file?\nClick "OK" to replay, or "Cancel" to select a new file.');
+    if (a) {
+        audio.currentTime = 0;
+        audio.play();
+    } else {
+        audio.src = '';
+        uploader.style.display = 'block';
+        banner.style.display = 'none';
+        art.src = '';
+    }
+});
