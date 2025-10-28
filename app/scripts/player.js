@@ -66,9 +66,9 @@ uploader.addEventListener('change', e => {
 
     jsmediatags.read(file, {
         onSuccess: tag => {
-            const { title, artist, picture } = tag.tags;
-            if (title) title.textContent = title.toUpperCase();
-            if (artist) artist.textContent = artist.toUpperCase();
+            const { title: tagTitle, artist: tagArtist, picture } = tag.tags;
+            if (tagTitle) title.textContent = tagTitle.toUpperCase();
+            if (tagArtist) artist.textContent = tagArtist.toUpperCase();
             banner.style.display = 'flex';
 
             if (picture) {
