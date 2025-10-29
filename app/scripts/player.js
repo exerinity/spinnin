@@ -129,10 +129,10 @@ audio.addEventListener('ended', () => {
         audio.currentTime = 0;
         audio.play();
     } else {
-        resetPlayer();
+        reset();
     }
 });
 
 outnow.addEventListener('click', () => {
-    if (confirm('Reset?')) document.location.reload(); // this is simple, and scrappy, but so fucking what, literally only 90 kilobytes
+    if (confirm('Reset?')) reset();
 });
