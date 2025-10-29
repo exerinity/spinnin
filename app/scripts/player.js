@@ -1,3 +1,7 @@
+if (/Mobi|Android/i.test(navigator.userAgent)) {
+    document.body.innerHTML = `This app is not supported on mobile devices. Request desktop site if you'd still like to continue`;
+}
+
 const stage = document.getElementById('stage');
 const uploader = document.getElementById('uploader');
 const art = document.getElementById('art');
@@ -5,6 +9,8 @@ const banner = document.getElementById('banner');
 const artist = document.getElementById('artist');
 const title = document.getElementById('title');
 const audio = document.getElementById('player');
+const links = document.getElementById('links');
+const outnow = document.getElementById('outnow');
 
 const PAN_SECONDS = 15;
 const SCALE_BASE = 1.85;
@@ -58,6 +64,7 @@ uploader.addEventListener('change', e => {
     if (!file) return;
 
     uploader.style.display = 'none';
+    links.style.display = 'none';
     audio.controls = false;
     audio.src = URL.createObjectURL(file);
     audio.autoplay = true;
@@ -67,8 +74,14 @@ uploader.addEventListener('change', e => {
     jsmediatags.read(file, {
         onSuccess: tag => {
             const { title: tagTitle, artist: tagArtist, picture } = tag.tags;
-            if (tagTitle) title.textContent = tagTitle.toUpperCase();
-            if (tagArtist) artist.textContent = tagArtist.toUpperCase();
+            function t(s, maxLen = 55) {
+                if (!s) return '';
+                s = String(s).toUpperCase();
+                return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
+            }
+
+            if (tagTitle) title.textContent = t(tagTitle, 85);
+            if (tagArtist) artist.textContent = t(tagArtist, 55);
             banner.style.display = 'flex';
 
             if (picture) {
@@ -94,6 +107,16 @@ stage.addEventListener('click', () => {
     if (audio.paused) audio.play(); else audio.pause();
 });
 
+function reset() {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = '';
+    uploader.style.display = 'block';
+    links.style.display = 'block';
+    banner.style.display = 'none';
+    art.src = '';
+}
+
 function calculate(buffer) {
     let binary = '', bytes = new Uint8Array(buffer);
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
@@ -106,9 +129,10 @@ audio.addEventListener('ended', () => {
         audio.currentTime = 0;
         audio.play();
     } else {
-        audio.src = '';
-        uploader.style.display = 'block';
-        banner.style.display = 'none';
-        art.src = '';
+        resetPlayer();
     }
+});
+
+outnow.addEventListener('click', () => {
+    if (confirm('Reset?')) document.location.reload(); // this is simple, and scrappy, but so fucking what, literally only 90 kilobytes
 });
