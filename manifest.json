@@ -1,0 +1,10 @@
+{
+    "name": "Spinnin' Records player",
+    "description": "A web app that tries to recreate the Spinnin' Records official YouTube player experience from the early/mid 2010s",
+    "short_name": "SpinRecPL",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#FF0000",
+    "id": "com.exerinity.spinnin"
+}

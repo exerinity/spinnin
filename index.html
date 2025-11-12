@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Spinnin' Records player</title>
+  <script src="/app/scripts/jsmediatags.min.js"></script>
+  <link rel="stylesheet" href="app/stylesheets/app.css">
+  <meta name="description" content="An app that aims to simulate the early/mid-2010s Spinnin' Records audio-only YouTube videos">
+  <meta name="author" content="exerinity.dev">
+  <meta name="keywords" content="spinnin',spinnin records">
+</head>
+
+<body>
+  <noscript>
+    JavaScript is not enabled, no Spinnin' Records player for you
+  </noscript>
+  <div class="stage" id="stage">
+    <input type="file" id="uploader" accept="audio/*">
+    <p id="links" class="links">
+      <a href="https://exerinity.dev/projects/spinnin" target="_blank">about</a> - <a href="https://youtu.be/e-U1lj57pv8" target="_blank">what this tries to recreate</a> - <a href="https://github.com/exerinity/spinnin" target="_blank">source code</a> - <a href="https://exerinity.dev" target="_blank">by exerinity.dev</a>
+      <br><small>
+        not affiliated with Spinnin' Records in any way! - v3
+      </small>
+    </p>
+    <img class="art" id="art" alt="album cover">
+    <img class="logo" src="/app/media/spinnin_tv.png">
+    <audio id="player"></audio>
+    <div class="banner" id="banner" style="display:none;">
+      <div class="left">
+        <div class="artist" id="artist">null</div>
+        <div class="title" id="title">null</div>
+      </div>
+      <div class="right" id="outnow" title="Click to reset player">OUT NOW!</div>
+    </div>
+  </div>
+  <script src="app/scripts/api.js"></script>
+  <script src="app/scripts/player.js"></script>
+  <script src="app/scripts/pwa.js"></script>
+</body>
+
+</html>
