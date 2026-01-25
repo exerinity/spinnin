@@ -1,4 +1,4 @@
-const CACHE_NAME = "spinrec3";
+const CACHE_NAME = "spinrec4";
 const FILES_TO_CACHE = [
 "./",
 "./index.html",
