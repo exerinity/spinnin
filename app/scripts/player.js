@@ -19,22 +19,26 @@ const metadata = {
     artUrl: ''
 };
 
-const PAN_SECONDS = 15;
-const SCALE_BASE = 1.85;
-const SCALE_RANGE = 0.1;
 let cursor_time = null;
+let pan_timer = null;
 
-function fallbackTrackTitle(file) {
-    if (!file || !file.name) return 'Unknown track';
-    const trimmed = file.name.trim();
-    if (!trimmed) return 'Unknown track';
-    const withoutExt = trimmed.replace(/\.[^/.]+$/, '');
-    return withoutExt || trimmed;
+const PAN_MIN = 8;
+const PAN_MAX = 22;
+
+const SCALE_MIN = 1.25;
+const SCALE_MAX = 2.4;
+
+function rand(min, max) {
+    return Math.random() * (max - min) + min;
 }
 
-function rand(min, max) { return Math.random() * (max - min) + min; }
+function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+}
 
-function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function choice(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function extreme(min, max, edgeFrac = 0.3) {
     const span = max - min;
@@ -44,29 +48,81 @@ function extreme(min, max, edgeFrac = 0.3) {
         : max - rand(0, edge);
 }
 
+function easeBezier() {
+    return choice([
+        'cubic-bezier(0.25, 0.1, 0.25, 1)',
+        'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        'cubic-bezier(0.4, 0, 0.2, 1)',
+        'cubic-bezier(0.1, 0.9, 0.2, 1)',
+    ]);
+}
+
+function fallbackTrackTitle(file) {
+    if (!file || !file.name) return 'Unknown track';
+    const trimmed = file.name.trim();
+    if (!trimmed) return 'Unknown track';
+    return trimmed.replace(/\.[^/.]+$/, '') || trimmed;
+}
+
 function move() {
-    const scale = clamp(SCALE_BASE + rand(-SCALE_RANGE, SCALE_RANGE), 1.2, 2);
-    const coverage = Math.min((scale - 1) * 50, 50);
+    const duration = rand(PAN_MIN, PAN_MAX);
+    const scale = rand(SCALE_MIN, SCALE_MAX);
+
+    if (Math.random() < 0.12) {
+        art.style.transition = `transform 30s linear`;
+        art.style.transform =
+            `translate(-50%, -50%) scale(${(scale + 0.4).toFixed(2)})`;
+        return scheduleNext();
+    }
+
+    const coverage = clamp((scale - 1) * 60, 20, 70);
     const min = 50 - coverage;
     const max = 50 + coverage;
 
-    const doedge = Math.random() < 0.8;
-    const dx = doedge ? extreme(min, max) : rand(min, max);
-    const dy = doedge ? extreme(min, max) : rand(min, max);
-    art.style.top = dy + '%';
-    art.style.left = dx + '%';
-    art.style.transform = `translate(-50%,-50%) scale(${scale.toFixed(2)})`;
+    let x, y;
+    const mode = Math.random();
+
+    if (mode < 0.45) {
+        x = extreme(min, max, 0.25);
+        y = extreme(min, max, 0.25);
+    } else if (mode < 0.75) {
+        x = rand(45, 55);
+        y = rand(45, 55);
+    } else {
+        x = rand(min, max);
+        y = rand(min, max);
+    }
+
+    const ease = easeBezier();
+
+    art.style.transition = `
+        transform ${duration}s ${ease},
+        top ${duration}s ${ease},
+        left ${duration}s ${ease}
+    `;
+
+    art.style.top = `${y}%`;
+    art.style.left = `${x}%`;
+    art.style.transform =
+        `translate(-50%, -50%) scale(${scale.toFixed(2)})`;
+
+    scheduleNext(duration);
+}
+
+function scheduleNext(d = rand(PAN_MIN, PAN_MAX)) {
+    clearTimeout(pan_timer);
+    pan_timer = setTimeout(move, d * 1000);
 }
 
 function pan_loop() {
     move();
-    setInterval(move, PAN_SECONDS * 1000);
 }
 
 function hide_cursor() {
     clearTimeout(cursor_time);
     document.body.classList.remove('hide-cursor');
     stage.classList.remove('hide-cursor');
+
     cursor_time = setTimeout(() => {
         document.body.classList.add('hide-cursor');
         stage.classList.add('hide-cursor');
@@ -77,15 +133,18 @@ document.addEventListener('mousemove', hide_cursor);
 uploader.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
+
     const defaultTitle = fallbackTrackTitle(file);
 
     uploader.style.display = 'none';
     links.style.display = 'none';
+
     audio.controls = false;
     audio.src = URL.createObjectURL(file);
     audio.autoplay = true;
     audio.muted = false;
-    audio.play().catch(err => console.warn('Autoplay blocked:', err));
+    audio.play().catch(() => {});
+
     window.mediaSessionBridge?.updateMetadata({
         title: defaultTitle,
         artist: 'Unknown artist',
@@ -95,40 +154,42 @@ uploader.addEventListener('change', e => {
 
     jsmediatags.read(file, {
         onSuccess: tag => {
-            const { title: tagTitle, artist: tagArtist, album: tagAlbum, picture } = tag.tags;
-            function t(s, maxLen = 55) {
+            const { title: tTitle, artist: tArtist, album, picture } = tag.tags;
+
+            function t(s, max = 55) {
                 if (!s) return '';
                 s = String(s).toUpperCase();
-                return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
+                return s.length > max ? s.slice(0, max) + '…' : s;
             }
 
-            if (tagTitle) title.textContent = t(tagTitle, 85);
-            if (tagArtist) artist.textContent = t(tagArtist, 55);
+            if (tTitle) title.textContent = t(tTitle, 85);
+            if (tArtist) artist.textContent = t(tArtist, 55);
+
             banner.style.display = 'flex';
 
-            let artDataUrl = art.src || '';
+            let artDataUrl = '';
+
             if (picture) {
                 const base64 = calculate(picture.data);
-                const mime = picture.format;
-                artDataUrl = `data:${mime};base64,${base64}`;
+                artDataUrl = `data:${picture.format};base64,${base64}`;
                 art.src = artDataUrl;
+            } else {
+                art.src = '';
             }
+
+            metadata.title = tTitle || defaultTitle;
+            metadata.artist = tArtist || 'Unknown artist';
+            metadata.album = album || 'Unknown album';
+            metadata.artUrl = artDataUrl;
+
+            window.mediaSessionBridge?.updateMetadata(metadata);
+
             pan_loop();
             hide_cursor();
-            window.mediaSessionBridge?.updateMetadata({
-                title: tagTitle || defaultTitle,
-                artist: tagArtist || 'Unknown artist',
-                album: tagAlbum || 'Unknown album',
-                artUrl: artDataUrl
-            });
-            metadata.title = tagTitle || defaultTitle;
-            metadata.artist = tagArtist || 'Unknown artist';
-            metadata.album = tagAlbum || 'Unknown album';
-            set_media_session_metadata();
-
         },
+
         onError: err => {
-            console.error('Error reading tags:', err);
+            console.error('Tag error:', err);
             banner.style.display = 'flex';
             art.src = '';
             pan_loop();
@@ -139,27 +200,38 @@ uploader.addEventListener('change', e => {
 
 stage.addEventListener('click', () => {
     if (!audio.src) return;
-    if (audio.paused) audio.play(); else audio.pause();
+    audio.paused ? audio.play() : audio.pause();
 });
 
 function reset() {
+    clearTimeout(pan_timer);
     audio.pause();
     audio.currentTime = 0;
     audio.src = '';
+
     uploader.style.display = 'block';
     links.style.display = 'block';
     banner.style.display = 'none';
+
     art.src = '';
+    art.style.transition = '';
 }
 
 function calculate(buffer) {
-    let binary = '', bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
     return window.btoa(binary);
 }
 
 audio.addEventListener('ended', () => {
-    const a = confirm('Playback ended\n\nPlay again, or choose a new file?\nClick "OK" to replay, or "Cancel" to select a new file.');
+    const a = confirm(
+        'Playback ended\n\nPlay again, or choose a new file?\n' +
+        'OK = replay, Cancel = new file'
+    );
+
     if (a) {
         audio.currentTime = 0;
         audio.play();
