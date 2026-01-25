@@ -1,6 +1,5 @@
 {
   "name": "Spinnin' Records player",
-  "short_name": "SpinRecPL",
   "id": "com.exerinity.spinnin",
   "description": "A web app that recreates the Spinnin' Records YouTube player experience from the early/mid 2010s",
   "start_url": "./",
