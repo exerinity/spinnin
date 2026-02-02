@@ -12,6 +12,8 @@ const audio = document.getElementById('player');
 const links = document.getElementById('links');
 const outnow = document.getElementById('outnow');
 
+const OG = ' (Original Mix)';
+
 const metadata = {
     title: '',
     artist: '',
@@ -242,4 +244,16 @@ audio.addEventListener('ended', () => {
 
 outnow.addEventListener('click', () => {
     if (confirm('Reset?')) reset();
+});
+
+title.addEventListener('click', e => {
+    e.stopPropagation();
+    const current = title.textContent || '';
+    if (!current) return;
+
+    if (current.endsWith(OG)) {
+        title.textContent = current.slice(0, -OG.length);
+    } else {
+        title.textContent = current + OG;
+    }
 });
