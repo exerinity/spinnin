@@ -10,6 +10,12 @@ Upload a file. That's literally it. Make sure the file has proper metadata (albu
 
 Also, a high-res album cover is ideal, because this zooms in *a lot*. If you don't have one, check https://musicbrainz.org or https://www.discogs.com to find higher quality covers.
 
+# Controls
+- Pressing "**OUT NOW!**": a prompt to reset the player
+- Pressing the artist: a prompt to change the intensity
+- Pressing the title: toggle "Original Mix" suffixing the title
+- Pressing anywhere else in the app: toggle playback
+
 # Disclaimer
 This app is obviously unofficial and not affiliated with Spinnin' Records.
 
@@ -20,4 +26,4 @@ This app is obviously unofficial and not affiliated with Spinnin' Records.
 This project is licensed under the MIT License. See the LICENSE file for details.
 
 # See also
-Check out my web-based advanced music player, Voxity: https://exerinity.com/i/vox (some parts of this were based on Voxity)
+Check out my web-based advanced music player, Voxity: https://voxity.dev (some parts of this were based on Voxity)
