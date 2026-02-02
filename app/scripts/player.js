@@ -13,6 +13,8 @@ const links = document.getElementById('links');
 const outnow = document.getElementById('outnow');
 
 const OG = ' (Original Mix)';
+const MIN_EFFECT_INTENSITY = 0.2;
+const MAX_EFFECT_INTENSITY = 5;
 
 const metadata = {
     title: '',
@@ -23,6 +25,7 @@ const metadata = {
 
 let cursor_time = null;
 let pan_timer = null;
+let effectIntensity = 1;
 
 const PAN_MIN = 8;
 const PAN_MAX = 22;
@@ -36,6 +39,10 @@ function rand(min, max) {
 
 function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
+}
+
+function nextDuration() {
+    return rand(PAN_MIN, PAN_MAX) / effectIntensity;
 }
 
 function choice(arr) {
@@ -67,14 +74,15 @@ function fallbackTrackTitle(file) {
 }
 
 function move() {
-    const duration = rand(PAN_MIN, PAN_MAX);
+    const duration = nextDuration();
     const scale = rand(SCALE_MIN, SCALE_MAX);
 
     if (Math.random() < 0.12) {
-        art.style.transition = `transform 30s linear`;
+        const slowDuration = 30 / effectIntensity;
+        art.style.transition = `transform ${slowDuration}s linear`;
         art.style.transform =
             `translate(-50%, -50%) scale(${(scale + 0.4).toFixed(2)})`;
-        return scheduleNext();
+        return scheduleNext(slowDuration);
     }
 
     const coverage = clamp((scale - 1) * 60, 20, 70);
@@ -111,7 +119,7 @@ function move() {
     scheduleNext(duration);
 }
 
-function scheduleNext(d = rand(PAN_MIN, PAN_MAX)) {
+function scheduleNext(d = nextDuration()) {
     clearTimeout(pan_timer);
     pan_timer = setTimeout(move, d * 1000);
 }
@@ -256,4 +264,21 @@ title.addEventListener('click', e => {
     } else {
         title.textContent = current + OG;
     }
+});
+
+
+
+artist.addEventListener('click', e => {
+    e.stopPropagation();    const input = prompt(`Set animation intensity (${MIN_EFFECT_INTENSITY} - ${MAX_EFFECT_INTENSITY})`, String(effectIntensity));
+    if (input === null) return;
+
+    const value = parseFloat(input);
+    if (Number.isNaN(value)) {
+        alert('Invalid number');
+        return;
+    }
+
+    effectIntensity = clamp(value, MIN_EFFECT_INTENSITY, MAX_EFFECT_INTENSITY);
+    clearTimeout(pan_timer);
+    move();
 });
