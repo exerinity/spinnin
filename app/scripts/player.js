@@ -24,14 +24,13 @@ const metadata = {
 };
 
 let cursor_time = null;
-let pan_timer = null;
-let effectIntensity = 1;
+let effectIntensity = 2;
 
-const PAN_MIN = 8;
-const PAN_MAX = 22;
+const PAN_MIN = 10;
+const PAN_MAX = 20;
 
-const SCALE_MIN = 1.25;
-const SCALE_MAX = 2.4;
+const SCALE_MIN = 1.15;
+const SCALE_MAX = 2.2;
 
 function rand(min, max) {
     return Math.random() * (max - min) + min;
@@ -41,29 +40,62 @@ function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
 }
 
-function nextDuration() {
-    return rand(PAN_MIN, PAN_MAX) / effectIntensity;
+function easeInOut(t) {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
-function choice(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
+function lerp(a, b, t) {
+    return a + (b - a) * t;
 }
 
-function extreme(min, max, edgeFrac = 0.3) {
-    const span = max - min;
-    const edge = span * edgeFrac;
-    return Math.random() < 0.5
-        ? min + rand(0, edge)
-        : max - rand(0, edge);
+const kb = {
+    x: 50, y: 50, scale: SCALE_MIN,
+    sx: 50, sy: 50, sscale: SCALE_MIN,
+    tx: 50, ty: 50, tscale: SCALE_MIN,
+    progress: 0,
+    duration: 14,
+    raf: null,
+    lastTime: null
+};
+
+function newKBTarget() {
+    const scale = rand(SCALE_MIN, SCALE_MAX);
+    const xCoverage = Math.min((scale * 1.2 - 1) * 50, 47);
+    const yCoverage = Math.min(xCoverage * 1.5, 47);
+    return {
+        x: clamp(rand(50 - xCoverage, 50 + xCoverage), 2, 98),
+        y: clamp(rand(50 - yCoverage, 50 + yCoverage), 2, 98),
+        scale
+    };
 }
 
-function easeBezier() {
-    return choice([
-        'cubic-bezier(0.25, 0.1, 0.25, 1)',
-        'cubic-bezier(0.2, 0.8, 0.2, 1)',
-        'cubic-bezier(0.4, 0, 0.2, 1)',
-        'cubic-bezier(0.1, 0.9, 0.2, 1)',
-    ]);
+function kenBurnsFrame(timestamp) {
+    if (!kb.lastTime) kb.lastTime = timestamp;
+    const dt = (timestamp - kb.lastTime) / 1000;
+    kb.lastTime = timestamp;
+
+    kb.progress += dt / kb.duration;
+
+    if (kb.progress >= 1) {
+        kb.progress = 0;
+        kb.sx = kb.tx;
+        kb.sy = kb.ty;
+        kb.sscale = kb.tscale;
+        const t = newKBTarget();
+        kb.tx = t.x; kb.ty = t.y; kb.tscale = t.scale;
+        kb.duration = rand(PAN_MIN, PAN_MAX) / effectIntensity;
+    }
+
+    const e = easeInOut(kb.progress);
+    kb.x = lerp(kb.sx, kb.tx, e);
+    kb.y = lerp(kb.sy, kb.ty, e);
+    kb.scale = lerp(kb.sscale, kb.tscale, e);
+
+    art.style.left = `${kb.x.toFixed(3)}%`;
+    art.style.top = `${kb.y.toFixed(3)}%`;
+    art.style.transform = `translate(-50%, -50%) scale(${kb.scale.toFixed(4)})`;
+
+    kb.raf = requestAnimationFrame(kenBurnsFrame);
 }
 
 function fallbackTrackTitle(file) {
@@ -73,59 +105,18 @@ function fallbackTrackTitle(file) {
     return trimmed.replace(/\.[^/.]+$/, '') || trimmed;
 }
 
-function move() {
-    const duration = nextDuration();
-    const scale = rand(SCALE_MIN, SCALE_MAX);
-
-    if (Math.random() < 0.12) {
-        const slowDuration = 30 / effectIntensity;
-        art.style.transition = `transform ${slowDuration}s linear`;
-        art.style.transform =
-            `translate(-50%, -50%) scale(${(scale + 0.4).toFixed(2)})`;
-        return scheduleNext(slowDuration);
-    }
-
-    const coverage = clamp((scale - 1) * 60, 20, 70);
-    const min = 50 - coverage;
-    const max = 50 + coverage;
-
-    let x, y;
-    const mode = Math.random();
-
-    if (mode < 0.45) {
-        x = extreme(min, max, 0.25);
-        y = extreme(min, max, 0.25);
-    } else if (mode < 0.75) {
-        x = rand(45, 55);
-        y = rand(45, 55);
-    } else {
-        x = rand(min, max);
-        y = rand(min, max);
-    }
-
-    const ease = easeBezier();
-
-    art.style.transition = `
-        transform ${duration}s ${ease},
-        top ${duration}s ${ease},
-        left ${duration}s ${ease}
-    `;
-
-    art.style.top = `${y}%`;
-    art.style.left = `${x}%`;
-    art.style.transform =
-        `translate(-50%, -50%) scale(${scale.toFixed(2)})`;
-
-    scheduleNext(duration);
-}
-
-function scheduleNext(d = nextDuration()) {
-    clearTimeout(pan_timer);
-    pan_timer = setTimeout(move, d * 1000);
-}
-
 function pan_loop() {
-    move();
+    if (kb.raf) cancelAnimationFrame(kb.raf);
+    kb.lastTime = null;
+    kb.progress = 0;
+
+    kb.sx = kb.x; kb.sy = kb.y; kb.sscale = kb.scale;
+    const t = newKBTarget();
+    kb.tx = t.x; kb.ty = t.y; kb.tscale = t.scale;
+    kb.duration = rand(PAN_MIN, PAN_MAX) / effectIntensity;
+
+    art.style.transition = 'none';
+    kb.raf = requestAnimationFrame(kenBurnsFrame);
 }
 
 function hide_cursor() {
@@ -155,12 +146,13 @@ uploader.addEventListener('change', e => {
     audio.muted = false;
     audio.play().catch(() => {});
 
-    window.mediaSessionBridge?.updateMetadata({
-        title: defaultTitle,
-        artist: 'Unknown artist',
-        album: 'Unknown album',
-        artUrl: ''
-    });
+    metadata.title = defaultTitle;
+    metadata.artist = 'Unknown artist';
+    metadata.album = 'Unknown album';
+    metadata.artUrl = '';
+    set_media_session_metadata();
+
+    document.title = `${defaultTitle} / Spinnin' Records player`;
 
     jsmediatags.read(file, {
         onSuccess: tag => {
@@ -191,8 +183,7 @@ uploader.addEventListener('change', e => {
             metadata.artist = tArtist || 'Unknown artist';
             metadata.album = album || 'Unknown album';
             metadata.artUrl = artDataUrl;
-
-            window.mediaSessionBridge?.updateMetadata(metadata);
+            set_media_session_metadata();
 
             pan_loop();
             hide_cursor();
@@ -214,7 +205,10 @@ stage.addEventListener('click', () => {
 });
 
 function reset() {
-    clearTimeout(pan_timer);
+    if (kb.raf) { cancelAnimationFrame(kb.raf); kb.raf = null; }
+    kb.lastTime = null;
+    kb.x = 50; kb.y = 50; kb.scale = SCALE_MIN;
+
     audio.pause();
     audio.currentTime = 0;
     audio.src = '';
@@ -225,6 +219,7 @@ function reset() {
 
     art.src = '';
     art.style.transition = '';
+    art.style.transform = '';
 }
 
 function calculate(buffer) {
@@ -279,6 +274,5 @@ artist.addEventListener('click', e => {
     }
 
     effectIntensity = clamp(value, MIN_EFFECT_INTENSITY, MAX_EFFECT_INTENSITY);
-    clearTimeout(pan_timer);
-    move();
+    pan_loop();
 });
