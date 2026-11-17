@@ -1,4 +1,4 @@
-const CACHE_NAME = "spinrec6";
+const CACHE_NAME = "spinrec17";
 const FILES_TO_CACHE = [
 "./",
 "./index.html",
@@ -6,8 +6,11 @@ const FILES_TO_CACHE = [
 "./robots.txt",
 "./app/stylesheets/app.css",
 "./app/scripts/player.js",
+"./app/scripts/hotkeys.js",
 "./app/scripts/jsmediatags.min.js",
-"./app/media/spinnin_tv.png"
+"./app/media/spinnin_tv.svg",
+"./app/fonts/LiberationSans-Bold.ttf",
+"./app/fonts/LiberationSans-Regular.ttf"
 ];
 
 self.addEventListener("install", (event) => {

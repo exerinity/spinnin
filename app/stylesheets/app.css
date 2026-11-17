@@ -1,3 +1,19 @@
+@font-face {
+    font-family: "Banner Sans";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/LiberationSans-Regular.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Banner Sans";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/LiberationSans-Bold.ttf") format("truetype");
+}
+
 :root {
     --pan-duration: 15s;
     --banner-bg: rgba(0, 0, 0, 0.5);
@@ -75,6 +91,7 @@ body.hide-cursor,
     justify-content: space-between;
     align-items: center;
     text-transform: uppercase;
+    font-family: "Banner Sans", Arial, "Helvetica Neue", sans-serif;
     font-weight: 700;
 }
 
@@ -86,31 +103,33 @@ body.hide-cursor,
 
 .artist {
     font-size: 2.2rem;
-    font-weight: 800;
-    letter-spacing: 0.03em;
+    font-weight: 700;
+    letter-spacing: 0;
     line-height: 1;
+    -webkit-text-stroke: 0.8px #fff;
+    paint-order: stroke fill;
 }
 
 .title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    opacity: 0.95;
-    line-height: 1.2;
+    font-size: 2.05rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.15;
 }
 
 .right {
-    font-size: 1.8rem;
-    opacity: 0.9;
-    font-weight: 800;
+    font-size: 2.1rem;
+    font-weight: 700;
+    -webkit-text-stroke: 0.8px #fff;
+    paint-order: stroke fill;
     align-self: center;
     cursor: pointer;
 }
 
 .logo {
     position: absolute;
-    top: 30px;
-    right: 30px;
+    top: 8px;
+    right: 8px;
     height: 52px;
     opacity: 0.85;
     pointer-events: none;
