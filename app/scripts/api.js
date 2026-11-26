@@ -2,11 +2,11 @@ function set_media_session_metadata() {
     if (!('mediaSession' in navigator)) return;
 
     const artwork = [];
-    if (metadata.artUrl) {
-        const type = metadata.artUrl.startsWith('data:')
-            ? metadata.artUrl.slice(5, metadata.artUrl.indexOf(';'))
+    if (metadata.art_url) {
+        const type = metadata.art_url.startsWith('data:')
+            ? metadata.art_url.slice(5, metadata.art_url.indexOf(';'))
             : 'image/jpeg';
-        artwork.push({ src: metadata.artUrl, sizes: '512x512', type });
+        artwork.push({ src: metadata.art_url, sizes: '512x512', type });
     }
 
     try {

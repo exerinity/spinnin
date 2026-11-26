@@ -62,22 +62,20 @@ body.hide-cursor,
 }
 
 .art {
+    display: block;
     position: absolute;
-    top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(1);
-    transform-origin: center;
-    pointer-events: none;
-    transition:
-        transform var(--pan-duration) cubic-bezier(.55, .01, .31, 1),
-        top var(--pan-duration) cubic-bezier(.55, .01, .31, 1),
-        left var(--pan-duration) cubic-bezier(.55, .01, .31, 1);
+    top: 50%;
     object-fit: cover;
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    pointer-events: none;
     filter: brightness(0.9);
-    width: auto;
-    height: 120%;
-    min-width: 120%;
-    min-height: 120%;
+    will-change: transform;
+}
+
+.art[hidden] {
+    display: none !important;
 }
 
 .banner {

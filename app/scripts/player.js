@@ -20,17 +20,17 @@ const metadata = {
     title: '',
     artist: '',
     album: '',
-    artUrl: ''
+    art_url: ''
 };
 
 let cursor_time = null;
-let effectIntensity = 2;
+let effect_intensity = 2;
 
 const PAN_MIN = 10;
 const PAN_MAX = 20;
 
-const SCALE_MIN = 1.15;
-const SCALE_MAX = 2.2;
+const SCALE_MIN = 1;
+const SCALE_MAX = 2.35;
 
 function rand(min, max) {
     return Math.random() * (max - min) + min;
@@ -40,7 +40,7 @@ function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
 }
 
-function easeInOut(t) {
+function ease_in_out(t) {
     return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
@@ -48,57 +48,99 @@ function lerp(a, b, t) {
     return a + (b - a) * t;
 }
 
+let art_base_size = 0;
+
 const kb = {
-    x: 50, y: 50, scale: SCALE_MIN,
-    sx: 50, sy: 50, sscale: SCALE_MIN,
-    tx: 50, ty: 50, tscale: SCALE_MIN,
+    pan_x: 0, pan_y: 0, scale: SCALE_MIN,
+    span_x: 0, span_y: 0, sscale: SCALE_MIN,
+    tpan_x: 0, tpan_y: 0, tscale: SCALE_MIN,
     progress: 0,
     duration: 14,
     raf: null,
-    lastTime: null
+    last_time: null
 };
 
-function newKBTarget() {
-    const scale = rand(SCALE_MIN, SCALE_MAX);
-    const xCoverage = Math.min((scale * 1.2 - 1) * 50, 47);
-    const yCoverage = Math.min(xCoverage * 1.5, 47);
+function stage_size() {
+    return { w: window.innerWidth, h: window.innerHeight };
+}
+
+function sync_art_base_size() {
+    const { w, h } = stage_size();
+    art_base_size = Math.max(w, h);
+    art.style.width = `${art_base_size}px`;
+    art.style.height = `${art_base_size}px`;
+}
+
+function pan_limits(scale) {
+    const { w, h } = stage_size();
+    const side = art_base_size * scale;
     return {
-        x: clamp(rand(50 - xCoverage, 50 + xCoverage), 2, 98),
-        y: clamp(rand(50 - yCoverage, 50 + yCoverage), 2, 98),
+        max_x: Math.max(0, (side - w) / 2),
+        max_y: Math.max(0, (side - h) / 2)
+    };
+}
+
+function clamp_pan(pan_x, pan_y, scale) {
+    const { max_x, max_y } = pan_limits(scale);
+    return {
+        pan_x: clamp(pan_x, -max_x, max_x),
+        pan_y: clamp(pan_y, -max_y, max_y)
+    };
+}
+
+function apply_art_transform(pan_x, pan_y, scale) {
+    const p = clamp_pan(pan_x, pan_y, scale);
+    art.style.transform =
+        `translate(-50%, -50%) translate(${p.pan_x.toFixed(2)}px, ${p.pan_y.toFixed(2)}px) scale(${scale.toFixed(4)})`;
+}
+
+function new_kb_target() {
+    const scale = rand(SCALE_MIN, SCALE_MAX);
+    const { max_x, max_y } = pan_limits(scale);
+    const pick_axis = max => {
+        if (max <= 0) return 0;
+        if (Math.random() < 0.35) {
+            return Math.random() < 0.5 ? -max : max;
+        }
+        return rand(-max, max);
+    };
+    return {
+        pan_x: pick_axis(max_x),
+        pan_y: pick_axis(max_y),
         scale
     };
 }
 
-function kenBurnsFrame(timestamp) {
-    if (!kb.lastTime) kb.lastTime = timestamp;
-    const dt = (timestamp - kb.lastTime) / 1000;
-    kb.lastTime = timestamp;
+function ken_burns_frame(timestamp) {
+    if (!kb.last_time) kb.last_time = timestamp;
+    const dt = (timestamp - kb.last_time) / 1000;
+    kb.last_time = timestamp;
 
     kb.progress += dt / kb.duration;
 
     if (kb.progress >= 1) {
         kb.progress = 0;
-        kb.sx = kb.tx;
-        kb.sy = kb.ty;
+        kb.span_x = kb.tpan_x;
+        kb.span_y = kb.tpan_y;
         kb.sscale = kb.tscale;
-        const t = newKBTarget();
-        kb.tx = t.x; kb.ty = t.y; kb.tscale = t.scale;
-        kb.duration = rand(PAN_MIN, PAN_MAX) / effectIntensity;
+        const t = new_kb_target();
+        kb.tpan_x = t.pan_x;
+        kb.tpan_y = t.pan_y;
+        kb.tscale = t.scale;
+        kb.duration = rand(PAN_MIN, PAN_MAX) / effect_intensity;
     }
 
-    const e = easeInOut(kb.progress);
-    kb.x = lerp(kb.sx, kb.tx, e);
-    kb.y = lerp(kb.sy, kb.ty, e);
+    const e = ease_in_out(kb.progress);
+    kb.pan_x = lerp(kb.span_x, kb.tpan_x, e);
+    kb.pan_y = lerp(kb.span_y, kb.tpan_y, e);
     kb.scale = lerp(kb.sscale, kb.tscale, e);
 
-    art.style.left = `${kb.x.toFixed(3)}%`;
-    art.style.top = `${kb.y.toFixed(3)}%`;
-    art.style.transform = `translate(-50%, -50%) scale(${kb.scale.toFixed(4)})`;
+    apply_art_transform(kb.pan_x, kb.pan_y, kb.scale);
 
-    kb.raf = requestAnimationFrame(kenBurnsFrame);
+    kb.raf = requestAnimationFrame(ken_burns_frame);
 }
 
-function fallbackTrackTitle(file) {
+function fallback_track_title(file) {
     if (!file || !file.name) return 'Unknown track';
     const trimmed = file.name.trim();
     if (!trimmed) return 'Unknown track';
@@ -106,18 +148,52 @@ function fallbackTrackTitle(file) {
 }
 
 function pan_loop() {
+    if (!art.src) return;
+    sync_art_base_size();
+
     if (kb.raf) cancelAnimationFrame(kb.raf);
-    kb.lastTime = null;
+    kb.last_time = null;
     kb.progress = 0;
 
-    kb.sx = kb.x; kb.sy = kb.y; kb.sscale = kb.scale;
-    const t = newKBTarget();
-    kb.tx = t.x; kb.ty = t.y; kb.tscale = t.scale;
-    kb.duration = rand(PAN_MIN, PAN_MAX) / effectIntensity;
+    kb.span_x = kb.pan_x;
+    kb.span_y = kb.pan_y;
+    kb.sscale = kb.scale;
+    const t = new_kb_target();
+    kb.tpan_x = t.pan_x;
+    kb.tpan_y = t.pan_y;
+    kb.tscale = t.scale;
+    kb.duration = rand(PAN_MIN, PAN_MAX) / effect_intensity;
 
     art.style.transition = 'none';
-    kb.raf = requestAnimationFrame(kenBurnsFrame);
+    apply_art_transform(kb.pan_x, kb.pan_y, kb.scale);
+    kb.raf = requestAnimationFrame(ken_burns_frame);
 }
+
+function start_art_animation() {
+    const run = () => {
+        sync_art_base_size();
+        kb.pan_x = 0;
+        kb.pan_y = 0;
+        kb.scale = SCALE_MIN;
+        apply_art_transform(0, 0, SCALE_MIN);
+        pan_loop();
+    };
+
+    if (art.complete && art.naturalWidth > 0) {
+        run();
+    } else {
+        art.onload = () => {
+            art.onload = null;
+            run();
+        };
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (!art.src) return;
+    sync_art_base_size();
+    apply_art_transform(kb.pan_x, kb.pan_y, kb.scale);
+});
 
 function hide_cursor() {
     clearTimeout(cursor_time);
@@ -135,7 +211,7 @@ uploader.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const defaultTitle = fallbackTrackTitle(file);
+    const default_title = fallback_track_title(file);
 
     uploader.style.display = 'none';
     links.style.display = 'none';
@@ -146,46 +222,48 @@ uploader.addEventListener('change', e => {
     audio.muted = false;
     audio.play().catch(() => {});
 
-    metadata.title = defaultTitle;
+    metadata.title = default_title;
     metadata.artist = 'Unknown artist';
     metadata.album = 'Unknown album';
-    metadata.artUrl = '';
+    metadata.art_url = '';
     set_media_session_metadata();
 
-    document.title = `${defaultTitle} / Spinnin' Records player`;
+    document.title = `${default_title} / Spinnin' Records player`;
 
     jsmediatags.read(file, {
         onSuccess: tag => {
-            const { title: tTitle, artist: tArtist, album, picture } = tag.tags;
+            const { title: tag_title, artist: tag_artist, album, picture } = tag.tags;
 
             function t(s, max = 55) {
                 if (!s) return '';
                 s = String(s).toUpperCase();
-                return s.length > max ? s.slice(0, max) + '…' : s;
+                return s.length > max ? s.slice(0, max) + '...' : s;
             }
 
-            if (tTitle) title.textContent = t(tTitle, 85);
-            if (tArtist) artist.textContent = t(tArtist, 55);
+            if (tag_title) title.textContent = t(tag_title, 85);
+            if (tag_artist) artist.textContent = t(tag_artist, 55);
 
             banner.style.display = 'flex';
 
-            let artDataUrl = '';
+            let art_data_url = '';
 
             if (picture) {
                 const base64 = calculate(picture.data);
-                artDataUrl = `data:${picture.format};base64,${base64}`;
-                art.src = artDataUrl;
+                art_data_url = `data:${picture.format};base64,${base64}`;
+                art.removeAttribute('hidden');
+                art.src = art_data_url;
             } else {
                 art.src = '';
+                art.hidden = true;
             }
 
-            metadata.title = tTitle || defaultTitle;
-            metadata.artist = tArtist || 'Unknown artist';
+            metadata.title = tag_title || default_title;
+            metadata.artist = tag_artist || 'Unknown artist';
             metadata.album = album || 'Unknown album';
-            metadata.artUrl = artDataUrl;
+            metadata.art_url = art_data_url;
             set_media_session_metadata();
 
-            pan_loop();
+            start_art_animation();
             hide_cursor();
         },
 
@@ -193,21 +271,38 @@ uploader.addEventListener('change', e => {
             console.error('Tag error:', err);
             banner.style.display = 'flex';
             art.src = '';
-            pan_loop();
+            art.hidden = true;
             hide_cursor();
         }
     });
 });
+
+function toggle_fullscreen() {
+    if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+        return;
+    }
+    document.documentElement.requestFullscreen().catch(() => {});
+}
 
 stage.addEventListener('click', () => {
     if (!audio.src) return;
     audio.paused ? audio.play() : audio.pause();
 });
 
+stage.addEventListener('dblclick', e => {
+    if (banner.contains(e.target)) return;
+    if (e.target === uploader || uploader.contains(e.target)) return;
+    e.preventDefault();
+    toggle_fullscreen();
+});
+
 function reset() {
     if (kb.raf) { cancelAnimationFrame(kb.raf); kb.raf = null; }
-    kb.lastTime = null;
-    kb.x = 50; kb.y = 50; kb.scale = SCALE_MIN;
+    kb.last_time = null;
+    kb.pan_x = 0;
+    kb.pan_y = 0;
+    kb.scale = SCALE_MIN;
 
     audio.pause();
     audio.currentTime = 0;
@@ -218,6 +313,7 @@ function reset() {
     banner.style.display = 'none';
 
     art.src = '';
+    art.hidden = true;
     art.style.transition = '';
     art.style.transform = '';
 }
@@ -261,10 +357,9 @@ title.addEventListener('click', e => {
     }
 });
 
-
-
 artist.addEventListener('click', e => {
-    e.stopPropagation();    const input = prompt(`Set animation intensity (${MIN_EFFECT_INTENSITY} - ${MAX_EFFECT_INTENSITY})`, String(effectIntensity));
+    e.stopPropagation();
+    const input = prompt(`Set animation intensity (${MIN_EFFECT_INTENSITY} - ${MAX_EFFECT_INTENSITY})`, String(effect_intensity));
     if (input === null) return;
 
     const value = parseFloat(input);
@@ -273,6 +368,6 @@ artist.addEventListener('click', e => {
         return;
     }
 
-    effectIntensity = clamp(value, MIN_EFFECT_INTENSITY, MAX_EFFECT_INTENSITY);
+    effect_intensity = clamp(value, MIN_EFFECT_INTENSITY, MAX_EFFECT_INTENSITY);
     pan_loop();
 });
