@@ -131,7 +131,6 @@ body.hide-cursor,
     top: 8px;
     right: 8px;
     height: 52px;
-    opacity: 0.85;
     pointer-events: none;
     user-select: none;
 }
